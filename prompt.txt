@@ -1,0 +1,23 @@
+SRC
+1. Controllers
+    Handles http request uses services to return proper response
+2. Services
+    business logics, combines needed objects data and gives out proper daata
+3. Models
+    CRUD functions
+4. database
+    Objects layer from database
+5. auth
+6. Server.js
+7. app.js
+8. othres(config.js etc)
+
+Use 
+node.js
+asyncio
+express
+jwtwebtoken
+postgresl
+bcrypt
+
+Make sure they follow SOLID principle and are modular 

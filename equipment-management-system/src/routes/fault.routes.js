@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const c = require('../controllers/fault.controller');
+const auth = require('../middleware/auth.middleware');
+const roles = require('../middleware/role.middleware');
+const validate = require('../middleware/validate.middleware');
+const s = require('../validators/schemas');
+const asyncHandler = require('../utils/asyncHandler');
+router.use(auth);
+router.get('/', roles('admin','manager','technician'), asyncHandler(c.list));
+router.post('/', validate(s.faultCreate), asyncHandler(c.create));
+router.patch('/:id', roles('admin','manager','technician'), validate(s.faultUpdate), asyncHandler(c.update));
+module.exports = router;

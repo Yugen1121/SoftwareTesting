@@ -1,0 +1,1 @@
+module.exports = (row) => row ? Object.freeze({ id: row.id, equipment_id: row.equipment_id, technician_id: row.technician_id, maintenance_type: row.maintenance_type, scheduled_at: row.scheduled_at, status: row.status }) : null;

@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const c = require('../controllers/booking.controller');
+const auth = require('../middleware/auth.middleware');
+const roles = require('../middleware/role.middleware');
+const validate = require('../middleware/validate.middleware');
+const s = require('../validators/schemas');
+const asyncHandler = require('../utils/asyncHandler');
+router.use(auth);
+router.get('/', asyncHandler(c.list));
+router.post('/', validate(s.bookingCreate), asyncHandler(c.create));
+router.put('/:id', validate(s.bookingUpdate), asyncHandler(c.update));
+router.delete('/:id', asyncHandler(c.cancel));
+module.exports = router;

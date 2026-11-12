@@ -1,0 +1,16 @@
+const router = require('express').Router();
+const c = require('../controllers/equipment.controller');
+const auth = require('../middleware/auth.middleware');
+const roles = require('../middleware/role.middleware');
+const validate = require('../middleware/validate.middleware');
+const s = require('../validators/schemas');
+const asyncHandler = require('../utils/asyncHandler');
+router.use(auth);
+router.get('/', asyncHandler(c.list));
+router.get('/availability', asyncHandler(c.availability));
+router.get('/:id', asyncHandler(c.get));
+router.post('/', roles('admin','manager'), validate(s.equipmentCreate), asyncHandler(c.create));
+router.put('/:id', roles('admin','manager'), validate(s.equipmentUpdate), asyncHandler(c.update));
+router.patch('/:id/status', roles('admin','manager','technician'), validate(s.statusUpdate), asyncHandler(c.status));
+router.delete('/:id', roles('admin'), asyncHandler(c.remove));
+module.exports = router;
