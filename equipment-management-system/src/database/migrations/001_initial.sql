@@ -5,6 +5,12 @@ CREATE TABLE IF NOT EXISTS roles (
   name VARCHAR(30) NOT NULL UNIQUE
 );
 
+INSERT INTO roles (name) VALUES
+  ('admin'),       -- manages equipment, labs, users, approves bookings, assigns maintenance
+  ('technician'),      -- handles faults, performs and logs maintenance
+  ('user')   -- books equipment, reports faults
+ON CONFLICT (name) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   full_name VARCHAR(120) NOT NULL,
