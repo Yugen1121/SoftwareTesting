@@ -2,9 +2,9 @@ const db = require('../database/connection');
 
 exports.create = async (data, client = db) => {
   const { rows } = await client.query(
-    `INSERT INTO equipment(equipment_code,name,description,category,location)
-     VALUES($1,$2,$3,$4,$5) RETURNING *`,
-    [data.equipmentCode,data.name,data.description || null,data.category || null,data.location]
+    `INSERT INTO equipment(equipment_code, name, description, category, location, status)
+     VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [data.equipmentCode,data.name,data.description || null,data.category || null, data.location, data.status || "available"]
   );
   return rows[0];
 };

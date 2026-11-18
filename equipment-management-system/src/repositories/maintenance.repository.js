@@ -1,9 +1,9 @@
 const db = require('../database/connection');
 exports.create = async (d, client = db) => {
   const { rows } = await client.query(
-    `INSERT INTO maintenance(equipment_id,technician_id,maintenance_type,description,scheduled_at)
-     VALUES($1,$2,$3,$4,$5) RETURNING *`,
-    [d.equipmentId,d.technicianId || null,d.maintenanceType,d.description || null,d.scheduledAt]
+    `INSERT INTO maintenance(equipment_id,technician_id,maintenance_type,description,scheduled_at, status)
+     VALUES($1,$2,$3,$4,$5, $6) RETURNING *`,
+    [d.equipmentId,d.technicianId || null,d.maintenanceType,d.description || null,d.scheduledAt, d.status || 'scheduled']
   );
   return rows[0];
 };
