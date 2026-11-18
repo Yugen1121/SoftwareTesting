@@ -28,10 +28,6 @@ describe('Booking Repository Integration Tests', () => {
   });
 
   it('should create a booking', async () => {
-
-    // Insert prerequisite user and equipment records here,
-    // using your actual database schema.
-
     const user = await usersRepo.create(usersData.user1, client);
     const equipment = await equipmentsRepo.create(equipmentsData.equipment1, client);
     const equipmentId = equipment.id;
@@ -49,5 +45,7 @@ describe('Booking Repository Integration Tests', () => {
     expect(booking.equipment_id).toBe(equipmentId);
     expect(booking.user_id).toBe(userId);
     expect(booking.purpose).toBe('Integration testing');
+    booked = booking
   });
+
 });
