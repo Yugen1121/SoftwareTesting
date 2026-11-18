@@ -267,8 +267,6 @@ describe('Fault Repository Integration Tests', () => {
       ).rejects.toMatchObject({ code: '23514' });
     });
 
-    // Documents TESTING_PLAN R-17: with no updatable keys the repository builds
-    // "UPDATE faults SET  WHERE ..." which is invalid SQL. Joi min(1) prevents this via the API.
     it.each([
       ['an empty object', {}],
       ['only unknown keys', { reportedBy: 1 }]
