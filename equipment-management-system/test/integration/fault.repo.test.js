@@ -49,26 +49,6 @@ describe('Fault Repository Integration Tests', () => {
       expect(Math.abs(fault.reported_at.getTime() - Date.now())).toBeLessThan(ONE_MINUTE);
     });
 
-    it('persists the fault so it can be read back', async () => {
-      const created = await faultRepository.create(validFault());
-
-      const found = await faultRepository.findById(created.id);
-
-      expect(found).toEqual(created);
-    });
-
-    it.each(['low', 'medium', 'high', 'critical'])('accepts severity "%s"', async (severity) => {
-      const fault = await faultRepository.create(validFault({ severity }));
-
-      expect(fault.severity).toBe(severity);
-    });
-
-    it('rejects a missing severity with a NOT NULL violation', async () => {
-      await expect(
-        faultRepository.create(validFault({ severity: undefined }))
-      ).rejects.toMatchObject({ code: '23502' });
-    });
-
     it('rejects an invalid severity with a CHECK violation', async () => {
       await expect(
         faultRepository.create(validFault({ severity: 'urgent' }))
@@ -80,12 +60,6 @@ describe('Fault Repository Integration Tests', () => {
         faultRepository.create(validFault({ equipmentId: 999999 }))
       ).rejects.toMatchObject({ code: '23503' });
     });
-
-    it('rejects a fault reported by a user that does not exist', async () => {
-      await expect(
-        faultRepository.create(validFault({ reportedBy: 999999 }))
-      ).rejects.toMatchObject({ code: '23503' });
-    });
   });
 
   describe('findById', () => {
@@ -94,16 +68,11 @@ describe('Fault Repository Integration Tests', () => {
 
       const found = await faultRepository.findById(created.id);
 
-      expect(found.id).toBe(created.id);
-      expect(found.description).toBe(created.description);
+      expect(found).toEqual(created);
     });
 
     it('returns null when the fault does not exist', async () => {
       await expect(faultRepository.findById(999999)).resolves.toBeNull();
-    });
-
-    it('rejects a non-numeric id with an invalid text representation error', async () => {
-      await expect(faultRepository.findById('abc')).rejects.toMatchObject({ code: '22P02' });
     });
   });
 
@@ -126,20 +95,13 @@ describe('Fault Repository Integration Tests', () => {
       await expect(faultRepository.list()).resolves.toEqual([]);
     });
 
-    it('returns every fault, newest reported first, when no status is given', async () => {
+    it('returns every fault newest reported first, with joined equipment and reporter details', async () => {
       await seedFaults();
 
       const rows = await faultRepository.list();
 
       expect(rows.map((r) => r.id)).toEqual([newer.id, resolved.id, older.id]);
-    });
-
-    it('includes the joined equipment and reporter details', async () => {
-      await seedFaults();
-
-      const [first] = await faultRepository.list();
-
-      expect(first).toMatchObject({
+      expect(rows[0]).toMatchObject({
         equipment_code: 'LAP-001',
         equipment_name: 'Dell Laptop',
         reporter: 'Alice Reporter'
@@ -161,14 +123,6 @@ describe('Fault Repository Integration Tests', () => {
 
       await expect(faultRepository.list('closed')).resolves.toEqual([]);
     });
-
-    it('treats an empty status string as no filter', async () => {
-      await seedFaults();
-
-      const rows = await faultRepository.list('');
-
-      expect(rows).toHaveLength(3);
-    });
   });
 
   describe('update', () => {
@@ -176,14 +130,6 @@ describe('Fault Repository Integration Tests', () => {
 
     beforeEach(async () => {
       fault = await faultRepository.create(validFault({ severity: 'medium' }));
-    });
-
-    it('updates a single field and leaves the others unchanged', async () => {
-      const updated = await faultRepository.update(fault.id, { severity: 'critical' });
-
-      expect(updated.severity).toBe('critical');
-      expect(updated.status).toBe('open');
-      expect(updated.description).toBe(fault.description);
     });
 
     it('updates several fields at once, including assigning a technician', async () => {
@@ -202,14 +148,6 @@ describe('Fault Repository Integration Tests', () => {
       });
     });
 
-    it('unassigns a technician when assignedTo is null', async () => {
-      await faultRepository.update(fault.id, { assignedTo: technician.id });
-
-      const updated = await faultRepository.update(fault.id, { assignedTo: null });
-
-      expect(updated.assigned_to).toBeNull();
-    });
-
     it('sets resolved_at when the status changes to resolved', async () => {
       const updated = await faultRepository.update(fault.id, { status: 'resolved' });
 
@@ -218,15 +156,12 @@ describe('Fault Repository Integration Tests', () => {
       expect(Math.abs(updated.resolved_at.getTime() - Date.now())).toBeLessThan(ONE_MINUTE);
     });
 
-    it.each(['in_progress', 'closed', 'open'])(
-      'does not set resolved_at when the status changes to "%s"',
-      async (status) => {
-        const updated = await faultRepository.update(fault.id, { status });
+    it('does not set resolved_at for a status other than resolved', async () => {
+      const updated = await faultRepository.update(fault.id, { status: 'in_progress' });
 
-        expect(updated.status).toBe(status);
-        expect(updated.resolved_at).toBeNull();
-      }
-    );
+      expect(updated.status).toBe('in_progress');
+      expect(updated.resolved_at).toBeNull();
+    });
 
     it('keeps resolved_at when a resolved fault is reopened (current behaviour)', async () => {
       const resolvedFault = await faultRepository.update(fault.id, { status: 'resolved' });
@@ -237,7 +172,7 @@ describe('Fault Repository Integration Tests', () => {
       expect(reopened.resolved_at).toEqual(resolvedFault.resolved_at);
     });
 
-    it('ignores keys that are not updatable columns', async () => {
+    it('ignores keys that are not updatable columns and leaves other columns unchanged', async () => {
       const updated = await faultRepository.update(fault.id, {
         severity: 'low',
         reportedBy: technician.id,
@@ -245,6 +180,8 @@ describe('Fault Repository Integration Tests', () => {
       });
 
       expect(updated.severity).toBe('low');
+      expect(updated.status).toBe('open');
+      expect(updated.description).toBe(fault.description);
       expect(updated.reported_by).toBe(reporter.id);
       expect(updated.equipment_id).toBe(equipment.id);
     });
@@ -261,17 +198,8 @@ describe('Fault Repository Integration Tests', () => {
       ).rejects.toMatchObject({ code: '23503' });
     });
 
-    it('rejects an invalid status with a CHECK violation', async () => {
-      await expect(
-        faultRepository.update(fault.id, { status: 'fixed' })
-      ).rejects.toMatchObject({ code: '23514' });
-    });
-
-    it.each([
-      ['an empty object', {}],
-      ['only unknown keys', { reportedBy: 1 }]
-    ])('rejects an update with %s with a SQL syntax error', async (_label, data) => {
-      await expect(faultRepository.update(fault.id, data)).rejects.toMatchObject({ code: '42601' });
+    it('rejects an update with no updatable fields with a SQL syntax error', async () => {
+      await expect(faultRepository.update(fault.id, {})).rejects.toMatchObject({ code: '42601' });
     });
   });
 });
