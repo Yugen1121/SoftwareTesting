@@ -14,7 +14,6 @@ exports.create = async (data, user) => db.withTransaction(async (client) => {
   );
   if (rows.length) throw new ApiError(409, 'Equipment is already booked during that period.');
   const booking = await repo.create({ ...data, userId: user.id }, client);
-  // The equipment status represents current operational state; future reservations do not mark it booked.
   if (new Date(data.startAt) <= new Date() && new Date(data.endAt) > new Date()) {
     await equipmentRepo.updateStatus(equipment.id, 'booked', client);
   }
