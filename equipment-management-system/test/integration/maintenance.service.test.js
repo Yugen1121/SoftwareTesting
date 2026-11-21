@@ -61,6 +61,9 @@ describe('Maintenance Service Integration Tests', () => {
   });
 
   afterAll(async () => {
+    // Leave the shared database empty: tests are committed (no rollback), and other test files
+    // (user, report) assume there are no leftover rows.
+    await resetDatabase();
     await db.pool.end();
   });
 
@@ -161,5 +164,96 @@ describe('Maintenance Service Integration Tests', () => {
     });
   });
 
-  
+  describe('update', () => {
+    let record;
+
+    beforeEach(async () => {
+      record = await maintenanceService.create(validMaintenance());
+    });
+
+    it('rejects an unknown id with 404', async () => {
+      await expect(
+        maintenanceService.update(999999, { description: 'x' })
+      ).rejects.toMatchObject({ statusCode: 404, message: 'Maintenance record not found.' });
+    });
+
+    it('updates fields without touching the equipment when no status is given', async () => {
+      const otherTechnician = await createUser({ role: 'technician', fullName: 'Tina Technician' });
+
+      const updated = await maintenanceService.update(record.id, {
+        technicianId: otherTechnician.id,
+        description: 'Rescheduled inspection'
+      });
+
+      expect(updated).toMatchObject({
+        technician_id: otherTechnician.id,
+        description: 'Rescheduled inspection',
+        status: 'scheduled'
+      });
+      expect((await getEquipment()).status).toBe('under_maintenance');
+      expect(await getHistory()).toHaveLength(1);
+    });
+
+    it('completes the record and returns the equipment to available with a history row', async () => {
+      const updated = await maintenanceService.update(record.id, { status: 'completed' });
+
+      expect(updated.status).toBe('completed');
+      expect(updated.completed_at).toBeInstanceOf(Date);
+      expect(Math.abs(updated.completed_at.getTime() - Date.now())).toBeLessThan(ONE_MINUTE);
+      expect((await getEquipment()).status).toBe('available');
+      const history = await getHistory();
+      expect(history).toHaveLength(2);
+      expect(history[1]).toMatchObject({
+        old_status: 'under_maintenance',
+        new_status: 'available',
+        reason: 'Maintenance completed',
+        changed_by: null
+      });
+    });
+
+    it('completes the record but leaves the equipment alone when it is not under maintenance', async () => {
+      await db.query("UPDATE equipment SET status = 'out_of_service' WHERE id = $1", [equipment.id]);
+
+      const updated = await maintenanceService.update(record.id, { status: 'completed' });
+
+      expect(updated.status).toBe('completed');
+      expect((await getEquipment()).status).toBe('out_of_service');
+      expect(await getHistory()).toHaveLength(1);
+    });
+
+    it('does not change the equipment when the status becomes in_progress', async () => {
+      const updated = await maintenanceService.update(record.id, { status: 'in_progress' });
+
+      expect(updated.status).toBe('in_progress');
+      expect((await getEquipment()).status).toBe('under_maintenance');
+      expect(await getHistory()).toHaveLength(1);
+    });
+
+    it('leaves the equipment under_maintenance when the maintenance is cancelled', async () => {
+      const updated = await maintenanceService.update(record.id, { status: 'cancelled' });
+
+      expect(updated.status).toBe('cancelled');
+      expect((await getEquipment()).status).toBe('under_maintenance');
+    });
+
+    it('propagates a database error and changes nothing', async () => {
+      await expect(
+        maintenanceService.update(record.id, { status: 'done' })
+      ).rejects.toMatchObject({ code: '23514' });
+
+      expect((await getMaintenance(record.id)).status).toBe('scheduled');
+      expect((await getEquipment()).status).toBe('under_maintenance');
+    });
+
+    it('leaves the record completed but the equipment under_maintenance when the second transaction fails', async () => {
+      jest.spyOn(db, 'withTransaction').mockRejectedValueOnce(new Error('boom'));
+
+      await expect(
+        maintenanceService.update(record.id, { status: 'completed' })
+      ).rejects.toThrow('boom');
+
+      expect((await getMaintenance(record.id)).status).toBe('completed');
+      expect((await getEquipment()).status).toBe('under_maintenance');
+    });
+  });
 });
