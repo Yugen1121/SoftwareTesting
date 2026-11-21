@@ -61,8 +61,6 @@ describe('Maintenance Service Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Leave the shared database empty: tests are committed (no rollback), and other test files
-    // (user, report) assume there are no leftover rows.
     await resetDatabase();
     await db.pool.end();
   });
