@@ -28,6 +28,9 @@ describe('Fault Repository Integration Tests', () => {
   });
 
   afterAll(async () => {
+    // Leave the shared database empty tests are committed (no rollback), and other test files
+    // (user, report) assume no leftover rows
+    await resetDatabase();
     await db.pool.end();
   });
 
