@@ -1,0 +1,57 @@
+name: CI
+
+# Runs the Jest tests for the equipment-management-system project on every push to master
+# and on every pull request
+# The project lives in a sub-folder of the repository, so every step runs there
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch: # adds a Run workflow button on the Actions tab
+
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the older run that is still going
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: equipment-management-system
+
+jobs:
+  # Jest: the unit test and the repository/service integration tests
+  # The integration tests start their own postgreSQL container (Testcontainers), which works
+  # on github ubuntu runners because they run docker
+  jest:
+    name: Jest (unit + integration)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: equipment-management-system/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # jest.config.js does not match on its own
+      - name: Run Jest with coverage
+        run: npx jest --runInBand --coverage --testMatch "**/test/**/*.test.js" "**/tests/**/*.test.js"
+
+      - name: Upload the coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage
+          path: equipment-management-system/coverage
+          if-no-files-found: ignore
