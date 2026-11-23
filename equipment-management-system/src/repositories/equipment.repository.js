@@ -42,14 +42,14 @@ exports.list = async ({ search, status, location, category, limit, offset }) => 
   );
   return { rows: result.rows, total: count.rows[0].total };
 };
-exports.update = async (id, data) => {
+exports.update = async (id, data, client = db) => {
   const map = { equipmentCode:'equipment_code', name:'name', description:'description', category:'category', location:'location' };
   const fields = Object.keys(data).filter((key) => map[key]);
   if (!fields.length) return exports.findById(id);
   const values = fields.map((key) => data[key]);
   const sets = fields.map((key, i) => `${map[key]}=$${i+1}`);
   values.push(id);
-  const { rows } = await db.query(
+  const { rows } = await client.query(
     `UPDATE equipment SET ${sets.join(',')}, updated_at=NOW() WHERE id=$${values.length} RETURNING *`, values
   );
   return rows[0] || null;
@@ -64,8 +64,8 @@ exports.remove = async (id) => {
   const result = await db.query('DELETE FROM equipment WHERE id=$1 RETURNING id', [id]);
   return result.rowCount > 0;
 };
-exports.availability = async () => {
-  const { rows } = await db.query(
+exports.availability = async (client = db) => {
+  const { rows } = await client.query(
     `SELECT status,COUNT(*)::int AS count FROM equipment GROUP BY status ORDER BY status`
   );
   return rows;

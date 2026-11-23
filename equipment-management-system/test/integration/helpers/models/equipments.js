@@ -6,7 +6,7 @@ exports.equipment1 = {
     location: "Arms"
 }
 
-exports.equipment1 = {
+exports.equipment2 = {
     equipmentCode: 2,
     name: "Gun",
     description: "M123", 
@@ -14,7 +14,7 @@ exports.equipment1 = {
     location: "Arms"
 }
 
-exports.equipment1 = {
+exports.equipment3 = {
     equipmentCode: 3,
     name: "Gun",
     description: "M123", 
@@ -22,7 +22,7 @@ exports.equipment1 = {
     location: "Arms"
 }
 
-exports.equipment1 = {
+exports.equipment4 = {
     equipmentCode: 4,
     name: "Gun",
     description: "M123", 
