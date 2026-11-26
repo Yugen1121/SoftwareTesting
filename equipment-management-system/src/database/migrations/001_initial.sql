@@ -93,7 +93,99 @@ CREATE TABLE IF NOT EXISTS equipment_status_history (
   changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+
 CREATE INDEX IF NOT EXISTS idx_equipment_search ON equipment (status, location, category);
 CREATE INDEX IF NOT EXISTS idx_bookings_equipment_dates ON bookings (equipment_id, start_at, end_at);
 CREATE INDEX IF NOT EXISTS idx_faults_status ON faults (status, severity);
 CREATE INDEX IF NOT EXISTS idx_maintenance_schedule ON maintenance (scheduled_at, status);
+
+INSERT INTO equipment (
+    equipment_code,
+    name,
+    description,
+    category,
+    location,
+    status
+)
+VALUES
+(
+    'EQ-001',
+    'Dell OptiPlex Desktop',
+    'High-performance desktop computer for laboratory work.',
+    'Computer Equipment',
+    'Computer Lab 1',
+    'available'
+),
+(
+    'EQ-002',
+    'HP LaserJet Printer',
+    'Network-enabled laser printer for document printing.',
+    'Printing Equipment',
+    'Computer Lab 1',
+    'available'
+),
+(
+    'EQ-003',
+    'Digital Oscilloscope',
+    'Digital oscilloscope for measuring electronic signals.',
+    'Electronics Equipment',
+    'Electronics Lab',
+    'available'
+),
+(
+    'EQ-004',
+    'Digital Multimeter',
+    'Digital multimeter for electrical testing and measurements.',
+    'Electronics Equipment',
+    'Electronics Lab',
+    'available'
+),
+(
+    'EQ-005',
+    '3D Printer',
+    'FDM 3D printer for prototyping and practical projects.',
+    'Manufacturing Equipment',
+    'Engineering Lab',
+    'available'
+),
+(
+    'EQ-006',
+    'CNC Milling Machine',
+    'Computer-controlled milling machine for precision manufacturing.',
+    'Manufacturing Equipment',
+    'Workshop 1',
+    'under_maintenance'
+),
+(
+    'EQ-007',
+    'Projector',
+    'HD multimedia projector for presentations.',
+    'Audio Visual Equipment',
+    'Lecture Room 1',
+    'available'
+),
+(
+    'EQ-008',
+    'Oscilloscope Probe Kit',
+    'Set of oscilloscope probes and accessories.',
+    'Electronics Equipment',
+    'Electronics Lab',
+    'available'
+),
+(
+    'EQ-009',
+    'Laptop',
+    'Lenovo ThinkPad laptop for laboratory and research activities.',
+    'Computer Equipment',
+    'Computer Lab 2',
+    'booked'
+),
+(
+    'EQ-010',
+    'Soldering Station',
+    'Temperature-controlled soldering station for electronics repairs.',
+    'Electronics Equipment',
+    'Electronics Lab',
+    'available'
+)
+ON CONFLICT (equipment_code) DO NOTHING;
