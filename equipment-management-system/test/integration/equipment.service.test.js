@@ -1,5 +1,5 @@
-const db = require("../../src/database/connection")
-const equipmentService = require("../../src/services/equipment.service")
+const db = require("../../src/database/connection");
+const equipmentService = require("../../src/services/equipment.service");
 const { resetDatabase, createUser, createEquipment } = require('./helpers/db');
 
 describe('Equipment Service Integration Tests', () => {
