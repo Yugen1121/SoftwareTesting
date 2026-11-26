@@ -12,7 +12,7 @@ exports.findById = async (id, client = db, lock = false) => {
   const { rows } = await client.query(`SELECT * FROM equipment WHERE id=$1 ${lock ? 'FOR UPDATE' : ''}`, [id]);
   return rows[0] || null;
 };
-exports.list = async ({ search, status, location, category, limit, offset }) => {
+exports.list = async ({ search, status, location, category, limit, offset}, client = db) => {
   const values = [];
   const clauses = [];
   const add = (sql, value) => { values.push(value); clauses.push(sql.replace('?', `$${values.length}`)); };
@@ -35,9 +35,9 @@ exports.list = async ({ search, status, location, category, limit, offset }) => 
     }
   }
   if (conditions.length) where = `WHERE ${conditions.join(' AND ')}`;
-  const count = await db.query(`SELECT COUNT(*)::int AS total FROM equipment ${where}`, params);
+  const count = await client.query(`SELECT COUNT(*)::int AS total FROM equipment ${where}`, params);
   params.push(limit, offset);
-  const result = await db.query(
+  const result = await client.query(
     `SELECT * FROM equipment ${where} ORDER BY id DESC LIMIT $${params.length-1} OFFSET $${params.length}`, params
   );
   return { rows: result.rows, total: count.rows[0].total };
